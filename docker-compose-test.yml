@@ -1,0 +1,88 @@
+version: "2.4"
+
+services:
+  edge-influxdb:
+    build: ./influxdb
+    image: edge-influxdb:0.0.1
+    container_name: edge-influxdb
+    restart: always
+    ports:
+      - 38086:8086
+      - 38088:8088
+    environment:
+      - INFLUXDB_DB=edge
+      - INFLUXDB_USER=edge
+      - INFLUXDB_USER_PASSWORD=edge
+      - INFLUXDB_HTTP_FLUX_ENABLED=false
+    volumes:
+      - edge-influxdb-volume:/var/lib/influxdb
+    mem_limit: 1200mb
+    networks:
+      - proxy-redirect
+
+  edge-kapacitor:
+    image: kapacitor:1.5.9-alpine
+    container_name: edge-kapacitor
+    restart: always
+    environment:
+      - KAPACITOR_INFLUXDB_0_URLS_0=http://edge-influxdb:8086
+      - KAPACITOR_MQTT_0_ENABLED=true
+      - KAPACITOR_MQTT_0_NAME=ie-databus-kapacitor
+      - KAPACITOR_MQTT_0_URL=tcp://ie-databus:1883
+      - KAPACITOR_MQTT_0_USERNAME=edge
+      - KAPACITOR_MQTT_0_PASSWORD=edge
+    links:
+      - "edge-influxdb"
+    depends_on:
+      - "edge-influxdb"
+    volumes:
+      - edge-kapacitor-volume:/var/lib/kapacitor
+    mem_limit: 350mb
+    networks:
+      - proxy-redirect
+
+  edge-chronograf:
+    image: chronograf:1.9-alpine
+    container_name: edge-chronograf
+    restart: always
+    ports:
+      - 38888:8888
+    environment:
+      - BASE_PATH=/edge-chronograf
+      - KAPACITOR_URL=http://edge-kapacitor:9092
+      - INFLUXDB_URL=http://edge-influxdb:8086
+      - INFLUXDB_USER=edge
+      - INFLUXDB_PASS=edge
+    links:
+      - "edge-influxdb"
+      - "edge-kapacitor"
+    depends_on:
+      - "edge-influxdb"
+      - "edge-kapacitor"
+    volumes:
+      - edge-chronograf-volume:/var/lib/chronograf
+    mem_limit: 150mb
+    networks:
+      - proxy-redirect
+
+  ie-databus:
+    container_name: ie-databus
+    image: eclipse-mosquitto:1.6.7
+    restart: unless-stopped
+    ports:
+      - "11883:1883"
+    networks:
+      - proxy-redirect
+
+volumes:
+  edge-influxdb-volume:
+    name: edge-influxdb-volume
+  edge-kapacitor-volume:
+    name: edge-kapacitor-volume
+  edge-chronograf-volume:
+    name: edge-chronograf-volume
+
+networks:
+  proxy-redirect:
+    external: true
+    name: proxy-redirect

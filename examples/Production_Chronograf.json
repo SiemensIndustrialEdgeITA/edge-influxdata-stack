@@ -1,0 +1,433 @@
+{
+	"meta": {
+		"chronografVersion": "1.8.6",
+		"sources": {
+			"0": {
+				"name": "http://edge-influxdb:8086",
+				"link": "/chronograf/v1/sources/0"
+			}
+		}
+	},
+	"dashboard": {
+		"id": "1",
+		"cells": [
+			{
+				"i": "4f677b92-56fa-4e85-823b-a533810f820e",
+				"x": 0,
+				"y": 0,
+				"w": 3,
+				"h": 4,
+				"name": "Good Pieces",
+				"queries": [
+					{
+						"query": "SELECT \"Production_GoodPieces\" FROM \"edge\".\"autogen\".\"production\" WHERE time > :dashboardTime: AND time < :upperDashboardTime: AND \"machine\"='test_machine'",
+						"queryConfig": {
+							"database": "edge",
+							"measurement": "production",
+							"retentionPolicy": "autogen",
+							"fields": [
+								{
+									"value": "Production_GoodPieces",
+									"type": "field",
+									"alias": ""
+								}
+							],
+							"tags": {
+								"machine": [
+									"test_machine"
+								]
+							},
+							"groupBy": {
+								"time": "",
+								"tags": []
+							},
+							"areTagsAccepted": true,
+							"rawText": null,
+							"range": null,
+							"shifts": null
+						},
+						"source": "",
+						"type": "influxql"
+					}
+				],
+				"axes": {
+					"x": {
+						"bounds": [
+							"",
+							""
+						],
+						"label": "",
+						"prefix": "",
+						"suffix": "",
+						"base": "10",
+						"scale": "linear"
+					},
+					"y": {
+						"bounds": [
+							"",
+							""
+						],
+						"label": "",
+						"prefix": "",
+						"suffix": " pcs",
+						"base": "10",
+						"scale": "linear"
+					},
+					"y2": {
+						"bounds": [
+							"",
+							""
+						],
+						"label": "",
+						"prefix": "",
+						"suffix": "",
+						"base": "10",
+						"scale": "linear"
+					}
+				},
+				"type": "gauge",
+				"colors": [
+					{
+						"id": "0",
+						"type": "min",
+						"hex": "#BF3D5E",
+						"name": "ruby",
+						"value": "0"
+					},
+					{
+						"id": "bce7645d-fc1e-445a-8e87-81742b2b5f31",
+						"type": "threshold",
+						"hex": "#FFD255",
+						"name": "thunder",
+						"value": "100000"
+					},
+					{
+						"id": "3aa2b6ef-9b3a-4403-ac77-e732013f33b0",
+						"type": "threshold",
+						"hex": "#7CE490",
+						"name": "honeydew",
+						"value": "300000"
+					},
+					{
+						"id": "1",
+						"type": "max",
+						"hex": "#9394FF",
+						"name": "comet",
+						"value": "500000"
+					}
+				],
+				"legend": {},
+				"tableOptions": {
+					"verticalTimeAxis": true,
+					"sortBy": {
+						"internalName": "time",
+						"displayName": "",
+						"visible": true
+					},
+					"wrapping": "truncate",
+					"fixFirstColumn": true
+				},
+				"fieldOptions": [
+					{
+						"internalName": "time",
+						"displayName": "",
+						"visible": true
+					}
+				],
+				"timeFormat": "MM/DD/YYYY HH:mm:ss",
+				"decimalPlaces": {
+					"isEnforced": true,
+					"digits": 0
+				},
+				"note": "",
+				"noteVisibility": "default",
+				"links": {
+					"self": "/chronograf/v1/dashboards/1/cells/4f677b92-56fa-4e85-823b-a533810f820e"
+				}
+			},
+			{
+				"i": "ca56c27a-7091-471c-b7b6-ad5960a31025",
+				"x": 3,
+				"y": 0,
+				"w": 9,
+				"h": 4,
+				"name": "Machine Speed",
+				"queries": [
+					{
+						"query": "SELECT \"Production_MachSpeed\" FROM \"edge\".\"autogen\".\"production\" WHERE time > :dashboardTime: AND time < :upperDashboardTime:",
+						"queryConfig": {
+							"database": "edge",
+							"measurement": "production",
+							"retentionPolicy": "autogen",
+							"fields": [
+								{
+									"value": "Production_MachSpeed",
+									"type": "field",
+									"alias": ""
+								}
+							],
+							"tags": {},
+							"groupBy": {
+								"time": "",
+								"tags": []
+							},
+							"areTagsAccepted": false,
+							"rawText": null,
+							"range": null,
+							"shifts": null
+						},
+						"source": "",
+						"type": "influxql"
+					}
+				],
+				"axes": {
+					"x": {
+						"bounds": [
+							"",
+							""
+						],
+						"label": "",
+						"prefix": "",
+						"suffix": "",
+						"base": "10",
+						"scale": "linear"
+					},
+					"y": {
+						"bounds": [
+							"",
+							""
+						],
+						"label": "",
+						"prefix": "",
+						"suffix": "pcs",
+						"base": "10",
+						"scale": "linear"
+					},
+					"y2": {
+						"bounds": [
+							"",
+							""
+						],
+						"label": "",
+						"prefix": "",
+						"suffix": "",
+						"base": "10",
+						"scale": "linear"
+					}
+				},
+				"type": "line-stepplot",
+				"colors": [
+					{
+						"id": "257df570-fb1b-4d26-a395-967d0c6bdd25",
+						"type": "scale",
+						"hex": "#FD7A5D",
+						"name": "Delorean",
+						"value": "0"
+					},
+					{
+						"id": "e5ce20fc-cd53-4d89-aa1b-ec8b07fbc83c",
+						"type": "scale",
+						"hex": "#5F1CF2",
+						"name": "Delorean",
+						"value": "0"
+					},
+					{
+						"id": "40ce7102-0eda-4feb-936a-367264695a6a",
+						"type": "scale",
+						"hex": "#4CE09A",
+						"name": "Delorean",
+						"value": "0"
+					}
+				],
+				"legend": {
+					"type": "static",
+					"orientation": "bottom"
+				},
+				"tableOptions": {
+					"verticalTimeAxis": true,
+					"sortBy": {
+						"internalName": "time",
+						"displayName": "",
+						"visible": true
+					},
+					"wrapping": "truncate",
+					"fixFirstColumn": true
+				},
+				"fieldOptions": [
+					{
+						"internalName": "time",
+						"displayName": "",
+						"visible": true
+					}
+				],
+				"timeFormat": "MM/DD/YYYY HH:mm:ss",
+				"decimalPlaces": {
+					"isEnforced": true,
+					"digits": 2
+				},
+				"note": "",
+				"noteVisibility": "default",
+				"links": {
+					"self": "/chronograf/v1/dashboards/1/cells/ca56c27a-7091-471c-b7b6-ad5960a31025"
+				}
+			},
+			{
+				"i": "c57ad8f9-31c5-4521-8ea7-efbb38991f65",
+				"x": 0,
+				"y": 4,
+				"w": 3,
+				"h": 4,
+				"name": "Bad Pieces",
+				"queries": [
+					{
+						"query": "SELECT \"Production_BadPieces\" FROM \"edge\".\"autogen\".\"production\" WHERE time > :dashboardTime: AND time < :upperDashboardTime: AND \"machine\"= :MachineName:",
+						"queryConfig": {
+							"database": "",
+							"measurement": "",
+							"retentionPolicy": "",
+							"fields": [],
+							"tags": {},
+							"groupBy": {
+								"time": "",
+								"tags": []
+							},
+							"areTagsAccepted": false,
+							"rawText": "SELECT \"Production_BadPieces\" FROM \"edge\".\"autogen\".\"production\" WHERE time > :dashboardTime: AND time < :upperDashboardTime: AND \"machine\"= :MachineName:",
+							"range": null,
+							"shifts": null
+						},
+						"source": "",
+						"type": "influxql"
+					}
+				],
+				"axes": {
+					"x": {
+						"bounds": [
+							"",
+							""
+						],
+						"label": "",
+						"prefix": "",
+						"suffix": "",
+						"base": "10",
+						"scale": "linear"
+					},
+					"y": {
+						"bounds": [
+							"",
+							""
+						],
+						"label": "",
+						"prefix": "",
+						"suffix": " pcs.",
+						"base": "10",
+						"scale": "linear"
+					},
+					"y2": {
+						"bounds": [
+							"",
+							""
+						],
+						"label": "",
+						"prefix": "",
+						"suffix": "",
+						"base": "10",
+						"scale": "linear"
+					}
+				},
+				"type": "gauge",
+				"colors": [
+					{
+						"id": "0",
+						"type": "min",
+						"hex": "#7CE490",
+						"name": "honeydew",
+						"value": "0"
+					},
+					{
+						"id": "93c5fc42-565d-4c8e-a2ad-1436a7c14ebb",
+						"type": "threshold",
+						"hex": "#FFD255",
+						"name": "thunder",
+						"value": "50000"
+					},
+					{
+						"id": "1148703b-a368-4055-b671-6d4bb5b99641",
+						"type": "threshold",
+						"hex": "#BF3D5E",
+						"name": "ruby",
+						"value": "100000"
+					},
+					{
+						"id": "1",
+						"type": "max",
+						"hex": "#9394FF",
+						"name": "comet",
+						"value": "200000"
+					}
+				],
+				"legend": {},
+				"tableOptions": {
+					"verticalTimeAxis": true,
+					"sortBy": {
+						"internalName": "time",
+						"displayName": "",
+						"visible": true
+					},
+					"wrapping": "truncate",
+					"fixFirstColumn": true
+				},
+				"fieldOptions": [
+					{
+						"internalName": "time",
+						"displayName": "",
+						"visible": true
+					}
+				],
+				"timeFormat": "MM/DD/YYYY HH:mm:ss",
+				"decimalPlaces": {
+					"isEnforced": true,
+					"digits": 0
+				},
+				"note": "",
+				"noteVisibility": "default",
+				"links": {
+					"self": "/chronograf/v1/dashboards/1/cells/c57ad8f9-31c5-4521-8ea7-efbb38991f65"
+				}
+			}
+		],
+		"templates": [
+			{
+				"tempVar": ":MachineName:",
+				"values": [
+					{
+						"value": "test_machine",
+						"type": "tagValue",
+						"selected": true
+					}
+				],
+				"id": "1b8e1fa3-a4b5-48f3-8c64-346ab8581248",
+				"type": "tagValues",
+				"label": "",
+				"query": {
+					"influxql": "SHOW TAG VALUES ON :database: FROM :measurement: WITH KEY=:tagKey:",
+					"db": "edge",
+					"measurement": "production",
+					"tagKey": "machine",
+					"fieldKey": ""
+				},
+				"sourceID": "dynamic",
+				"links": {
+					"self": "/chronograf/v1/dashboards/1/templates/1b8e1fa3-a4b5-48f3-8c64-346ab8581248"
+				}
+			}
+		],
+		"name": "Production",
+		"organization": "default",
+		"links": {
+			"self": "/chronograf/v1/dashboards/1",
+			"cells": "/chronograf/v1/dashboards/1/cells",
+			"templates": "/chronograf/v1/dashboards/1/templates"
+		}
+	}
+}

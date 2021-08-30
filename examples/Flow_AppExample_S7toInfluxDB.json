@@ -1,0 +1,721 @@
+[
+    {
+        "id": "fce38304.fdfcd",
+        "type": "tab",
+        "label": "S7 - InfluxDB App Example",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "2a9e39c7.f1f666",
+        "type": "debug",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 370,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "79f6115f.9d8b4",
+        "type": "mqtt in",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "topic": "ie/d/j/simatic/v1/s7c1/dp/r/1516_S7PLUS/default",
+        "qos": "0",
+        "datatype": "json",
+        "broker": "163f80f6.8d5c0f",
+        "x": 200,
+        "y": 280,
+        "wires": [
+            [
+                "2a9e39c7.f1f666",
+                "a4404bc8.766418",
+                "1faac318.7ee00d"
+            ]
+        ]
+    },
+    {
+        "id": "591ffab2.efd724",
+        "type": "comment",
+        "z": "fce38304.fdfcd",
+        "name": "get data as bulk from S7 Connector",
+        "info": "## Description\nHere we will receive messages from MQTT IE Databus, that contains all data read by the S7-1500 PLC configured within the S7 Connector application. The PLC Name configured will be part of the topic to be subscribed.\n\n## Example Topic\n`ie/d/j/simatic/v1/s7c1/dp/r/1516_UA/default`\n\n## Example Output\n```\n{\n  \"topic\": \"ie/d/j/simatic/v1/s7c1/dp/r/1516_UA/default\",\n  \"payload\": {\n    \"seq\": 44093,\n    \"vals\": [\n      {\n        \"id\": 101,\n        \"qc\": 3,\n        \"ts\": \"2021-03-06T09:17:05.347Z\",\n        \"val\": 4728.96337890625\n      },\n      {\n        \"id\": 102,\n        \"qc\": 3,\n        \"ts\": \"2021-03-06T09:17:05.347Z\",\n        \"val\": 7141.59326171875\n      }\n    ]\n  }\n}\n```",
+        "x": 160,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "e2a1a1f7.d218a",
+        "type": "comment",
+        "z": "fce38304.fdfcd",
+        "name": "map Data in Measurements",
+        "info": "## Description\nHere we will transform the received payload from MQTT IE Databus, that contains all data read by the S7-1500 PLC configured within the S7 Connector application, into a message matching the standard required by the **\"influx-out**\" node.\nFor the \"influx-out\" node, the `msg.payload` is an object containing multiple properties, all fields will be written in the measure.\nWe will transform the `id` key of the received variable into the name of the \"influxDB field\" (with a replace prefix) and the `val` key will be approximated to 3 decimal places.\nThe measurement name is set with `msg.measurement` property.\n\n## Example Input\n```\n{\n  \"topic\": \"ie/d/j/simatic/v1/s7c1/dp/r/1516_UA/default\",\n  \"payload\": {\n    \"seq\": 44093,\n    \"vals\": [\n      {\n        \"id\": \"BigData_Real600_0\",\n        \"qc\": 3,\n        \"ts\": \"2021-03-06T09:17:05.347Z\",\n        \"val\": \"4728.96337890625\"\n      },\n      {\n        \"id\": \"BigData_Real600_1\",\n        \"qc\": 3,\n        \"ts\": \"2021-03-06T09:17:05.347Z\",\n        \"val\": \"7141.59326171875\"\n      }\n    ]\n  }\n}\n```\n\n## Example Output\n```\n{\n  \"measurement\": \"real600\",\n  \"payload\": {\n    \"R_0\": 4728.963,\n    \"R_1\": 7141.593\n  }\n}\n```",
+        "x": 240,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "a2ec9800.afd828",
+        "type": "comment",
+        "z": "fce38304.fdfcd",
+        "name": "buffer and send data to InfluxDB App",
+        "info": "## Description\nThe `influxdb out` node can write values and tags to an influxdb measurement.\nThe fields and tags to write are in msg.payload. \nIn this case, msg.payload is an object containing multiple properties, the fields that will be written to the measurement.\nIf the measurement field is not set in the node configuration, the user can send in data with a specified measurement name in `msg.measurement` to overwrite the measurement field in the configuration of the node.\n\nWe will use the node in **InfluxDB 1.x Mode**.\nIn the Advanced Query Options the time precision of seconds is specified \nIf no retention policy is specified, autogen will be assumed.\n\n## Example Input\n```\n{\n  \"measurement\": \"real600\",\n  \"payload\": {\n    \"R_0\": 4728.963,\n    \"R_1\": 7141.593\n  }\n}\n```",
+        "x": 560,
+        "y": 540,
+        "wires": []
+    },
+    {
+        "id": "a4404bc8.766418",
+        "type": "function",
+        "z": "fce38304.fdfcd",
+        "name": "Production Data to InfluxDB Measurement",
+        "func": "// create out message\nlet outMsg = {\"payload\": null};\n\n// Insert here the ordered output tag list\nlet selectedTags = [\"Production_GoodPieces\",\n                    \"Production_BadPieces\",\n                    \"Production_MachSpeed\"];\n   \n// get S7Map variable\nlet S7ConnectionMap = flow.get(\"S7ConnectionMap\");\n\n// find index of 1516_S7PLUS connection\nlet connectionIndex = S7ConnectionMap.nameList.indexOf(\"1516_S7PLUS\");\n// use the index to get the right map\nlet nameIDMap = S7ConnectionMap.nameIDMaps[connectionIndex];\n\n// get IDs of selected Tags\nlet selectedIDs = selectedTags.map(name => nameIDMap.get(name));\n\n// create an empty series with null timestamp\nlet outSeries = [{\"time\": null}, {\"machine\": \"test_machine\"}]\n\n// iterate through readed tags\nfor (let i=0; i < msg.payload.vals.length; i++){\n    \n    // iterate through selected ids\n    for(let j=0; j < selectedIDs.length; j++){\n    \n        // search for tagselectedTags[j]\n        if(msg.payload.vals[i].id == selectedIDs[j])\n        {\n            outSeries[0].time = new Date(Date.parse(msg.payload.vals[i].ts)).getTime();\n            outSeries[0][selectedTags[j]] = Number(msg.payload.vals[i].val.toFixed(2));\n\n            // stop on first match, ids are uniques\n            break;\n        }\n    }\n}\n\n// if time was changed means that some ids was finded\nif (outSeries[0].time)\n{\n    outMsg.payload = outSeries;\n    return outMsg;\n}\n\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 220,
+        "y": 520,
+        "wires": [
+            [
+                "2cc1c455.ad67fc",
+                "9bde17de.9db318"
+            ]
+        ]
+    },
+    {
+        "id": "b1eb1936.c2e958",
+        "type": "ui_gauge",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "group": "4bedf3f5.91eb9c",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Good Pieces",
+        "label": "pcs.",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "500000",
+        "colors": [
+            "#e53838",
+            "#ecec5f",
+            "#3acb43"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "x": 950,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "148f3d50.735ca3",
+        "type": "ui_gauge",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "group": "4bedf3f5.91eb9c",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Bad Pieces",
+        "label": "pcs.",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "200000",
+        "colors": [
+            "#33d738",
+            "#ecec5f",
+            "#e43a4b"
+        ],
+        "seg1": "",
+        "seg2": "",
+        "x": 950,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "2c34a201.2aaf3e",
+        "type": "ui_gauge",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "group": "db6a5a19.a6a128",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Machine Speed",
+        "label": "pcs.",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "500",
+        "colors": [
+            "#e43f3f",
+            "#45d962",
+            "#f2e640"
+        ],
+        "seg1": "119",
+        "seg2": "400",
+        "x": 960,
+        "y": 280,
+        "wires": []
+    },
+    {
+        "id": "9f852e64.dc605",
+        "type": "ui_slider",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "label": "Set Machine Speed",
+        "tooltip": "",
+        "group": "7bd3d7df.835d08",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "outs": "end",
+        "topic": "",
+        "min": "120",
+        "max": "500",
+        "step": "10",
+        "x": 570,
+        "y": 380,
+        "wires": [
+            [
+                "b1694de2.4ff5f"
+            ]
+        ]
+    },
+    {
+        "id": "1faac318.7ee00d",
+        "type": "function",
+        "z": "fce38304.fdfcd",
+        "name": "Production Data to UI",
+        "func": "// Insert here the ordered output tag list\nlet selectedTags = [\"Production_GoodPieces\",\n                    \"Production_BadPieces\",\n                    \"Production_MachSpeed\"];\n                    \n                    \n// get S7Map variable\nlet S7ConnectionMap = flow.get(\"S7ConnectionMap\");\n\n// find index of PLC connection\nlet connectionIndex = S7ConnectionMap.nameList.indexOf(\"1516_S7PLUS\");\n// usr the index to get the right map\nlet nameIDMap = S7ConnectionMap.nameIDMaps[connectionIndex];\n\n// get IDs of selected Tags\nlet selectedIDs = selectedTags.map(name => nameIDMap.get(name));\n\n\n// create out message\nfor (let i=0; i < msg.payload.vals.length; i++){\n    // filter only GoodPieces\n    if(msg.payload.vals[i].id == selectedIDs[selectedTags.indexOf(\"Production_GoodPieces\")]){\n        // create single message\n        let outMsg = {\"topic\": \"Production_GoodPieces\", \"payload\": Number(msg.payload.vals[i].val)};\n        // send data out\n        node.send([outMsg, null, null]);\n    }\n    // filter only BadPieces\n    if(msg.payload.vals[i].id == selectedIDs[selectedTags.indexOf(\"Production_BadPieces\")]){\n        // create single message\n        let outMsg = {\"topic\": \"Production_BadPieces\", \"payload\": Number(msg.payload.vals[i].val)};\n        // send data out\n        node.send([null, outMsg, null]);\n    }\n    // filter only MachSpeed\n    if(msg.payload.vals[i].id == selectedIDs[selectedTags.indexOf(\"Production_MachSpeed\")]){\n        // create single message\n        let outMsg = {\"topic\": \"Production_MachSpeed\", \"payload\": Number(Number(msg.payload.vals[i].val).toFixed(2))};\n        // send data out\n        node.send([null, null, outMsg]);\n    }\n}\n",
+        "outputs": 3,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 600,
+        "y": 240,
+        "wires": [
+            [
+                "b1eb1936.c2e958"
+            ],
+            [
+                "148f3d50.735ca3"
+            ],
+            [
+                "2c34a201.2aaf3e",
+                "9f852e64.dc605"
+            ]
+        ]
+    },
+    {
+        "id": "b1694de2.4ff5f",
+        "type": "function",
+        "z": "fce38304.fdfcd",
+        "name": "create S7 Write msg",
+        "func": "// get S7Map variable\nlet S7ConnectionMap = flow.get(\"S7ConnectionMap\");\n\n// find index of fps716 connection\nlet connectionIndex = S7ConnectionMap.nameList.indexOf(\"1516_S7PLUS\");\n// usr the index to get the right map\nlet nameIDMap = S7ConnectionMap.nameIDMaps[connectionIndex];\n\n// set output message\nlet outMsg = {\"payload\":{}};\n\n// get actual datetime\nlet d = new Date();\n// get actual write message counter\nlet seq = flow.get(\"seq\") || 0;\n\n// create write message payload schema\noutMsg.payload = \n    {\n        \"seq\": seq,\n        \"vals\":[{  \n            \"id\": nameIDMap.get(\"Production_MachSpeed\"),\n            \"val\": parseFloat(msg.payload)\n            }]\n    };\n\n// increment write message counter for next write\nflow.set(\"seq\", seq + 1);\n    \nreturn outMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 800,
+        "y": 380,
+        "wires": [
+            [
+                "c163985c.045288",
+                "45e433c3.5b88bc"
+            ]
+        ]
+    },
+    {
+        "id": "c163985c.045288",
+        "type": "mqtt out",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "topic": "ie/d/j/simatic/v1/s7c1/dp/w/1516_S7PLUS",
+        "qos": "",
+        "retain": "",
+        "broker": "163f80f6.8d5c0f",
+        "x": 900,
+        "y": 460,
+        "wires": []
+    },
+    {
+        "id": "e2d2aa15.e41118",
+        "type": "comment",
+        "z": "fce38304.fdfcd",
+        "name": "filter Production Data",
+        "info": "",
+        "x": 640,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "7f4b1706.bf28a8",
+        "type": "comment",
+        "z": "fce38304.fdfcd",
+        "name": "show on UI",
+        "info": "",
+        "x": 940,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "cf98c1f4.bce09",
+        "type": "comment",
+        "z": "fce38304.fdfcd",
+        "name": "set machine speed from UI",
+        "info": "",
+        "x": 670,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "d6fd2343.0cd89",
+        "type": "comment",
+        "z": "fce38304.fdfcd",
+        "name": "write Value to S7 Connector",
+        "info": "",
+        "x": 940,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "45e433c3.5b88bc",
+        "type": "debug",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1010,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "664233d8.e6b05c",
+        "type": "ui_chart",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "group": "7bd3d7df.835d08",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "label": "One Day Production Trend",
+        "chartType": "line",
+        "legend": "true",
+        "xformat": "dd HH:mm",
+        "interpolate": "linear",
+        "nodata": "",
+        "dot": false,
+        "ymin": "0",
+        "ymax": "500000",
+        "removeOlder": "1",
+        "removeOlderPoints": "",
+        "removeOlderUnit": "86400",
+        "cutout": 0,
+        "useOneColor": false,
+        "useUTC": false,
+        "colors": [
+            "#1c84ce",
+            "#ed2c2f",
+            "#ff7f0e",
+            "#2ca02c",
+            "#98df8a",
+            "#d62728",
+            "#ff9896",
+            "#9467bd",
+            "#c5b0d5"
+        ],
+        "outputs": 1,
+        "x": 960,
+        "y": 700,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2cc1c455.ad67fc",
+        "type": "debug",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 470,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "c52c18b6.f68d78",
+        "type": "inject",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "30",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 139,
+        "y": 700,
+        "wires": [
+            [
+                "bcfff96a.b317c8"
+            ]
+        ]
+    },
+    {
+        "id": "c02fcb05.f9d7b8",
+        "type": "debug",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 870,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "d3ef9a68.e252e8",
+        "type": "function",
+        "z": "fce38304.fdfcd",
+        "name": "create chart msg",
+        "func": "// define influxdb fields names\nlet outFields = [\"GoodPiecesSub\", \"BadPiecesSub\"]\n\n// create base out message\nlet outMsg = {payload:[{}]};\n\n// create chart properties\noutMsg.payload[0].series = [outFields[0], outFields[1]];\noutMsg.payload[0].data = [[],[]];\noutMsg.payload[0].labels = [\"\"];\n\n// scan input data series and create chart data series\nfor (let i = 0; i < msg.payload.length; i++)\n{\n    let ts = new Date(msg.payload[i].time).getTime();\n    // if value of selected fields exist, push to data array toghetee with timestamp\n    if (msg.payload[i][outFields[0]] !== null)\n    {\n        outMsg.payload[0].data[0].push({\"x\": ts, \"y\": msg.payload[i][outFields[0]]});    \n    }\n    if (msg.payload[i][outFields[1]] !== null)\n    {\n        outMsg.payload[0].data[1].push({\"x\": ts, \"y\": msg.payload[i][outFields[1]]});   \n    }\n}\n\nreturn outMsg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 670,
+        "y": 700,
+        "wires": [
+            [
+                "c02fcb05.f9d7b8",
+                "664233d8.e6b05c"
+            ]
+        ]
+    },
+    {
+        "id": "99a24e71.0266d",
+        "type": "comment",
+        "z": "fce38304.fdfcd",
+        "name": "trigger every 30 sec",
+        "info": "",
+        "x": 130,
+        "y": 660,
+        "wires": []
+    },
+    {
+        "id": "3344b660.a1321a",
+        "type": "comment",
+        "z": "fce38304.fdfcd",
+        "name": "get data from InfluxDB",
+        "info": "",
+        "x": 360,
+        "y": 660,
+        "wires": []
+    },
+    {
+        "id": "4ec52537.03006c",
+        "type": "comment",
+        "z": "fce38304.fdfcd",
+        "name": "show on UI",
+        "info": "",
+        "x": 900,
+        "y": 660,
+        "wires": []
+    },
+    {
+        "id": "d7ee80ac.f7735",
+        "type": "debug",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 630,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "adf4804b.3ca2b",
+        "type": "influxdb out",
+        "z": "fce38304.fdfcd",
+        "influxdb": "fee03a9c.fcb198",
+        "name": "",
+        "measurement": "production",
+        "precision": "ms",
+        "retentionPolicy": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "organisation",
+        "bucket": "bucket",
+        "x": 780,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "bcfff96a.b317c8",
+        "type": "influxdb in",
+        "z": "fce38304.fdfcd",
+        "influxdb": "fee03a9c.fcb198",
+        "name": "",
+        "query": "SELECT ROUND(MEAN(\"Production_GoodPieces\")) AS \"GoodPiecesSub\", \n       ROUND(MEAN(\"Production_BadPieces\")) AS \"BadPiecesSub\"\nFROM \"edge\".\"autogen\".\"production\" \nWHERE time > now() - 1d AND time < now()\nGROUP BY time(1m),* FILL(null)",
+        "rawOutput": false,
+        "precision": "",
+        "retentionPolicy": "",
+        "org": "organisation",
+        "x": 390,
+        "y": 700,
+        "wires": [
+            [
+                "d3ef9a68.e252e8",
+                "d7ee80ac.f7735"
+            ]
+        ]
+    },
+    {
+        "id": "a8ee0437.3e10f8",
+        "type": "mqtt in",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "topic": "ie/m/j/simatic/v1/s7c1/dp",
+        "qos": "2",
+        "datatype": "json",
+        "broker": "163f80f6.8d5c0f",
+        "x": 130,
+        "y": 100,
+        "wires": [
+            [
+                "d83a750.30c5088",
+                "51926dea.ada5d4"
+            ]
+        ]
+    },
+    {
+        "id": "d83a750.30c5088",
+        "type": "debug",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 390,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "51926dea.ada5d4",
+        "type": "function",
+        "z": "fce38304.fdfcd",
+        "name": "Create S7ConnectionMap Variable",
+        "func": "// Create an object that contains each S7 Connector connection property\n// with different Map Objects to create correspondence between Tags IDs, Names and Types.\n\n\n// initialize the connections Mapping Object\nlet S7ConnectionMap = {\n    \"nameList\":[],      // array of available S7 Connections names. Order is the same in Map objects below.\n    \"typeList\":[],      // array of available S7 Connections types. Order is the same of nameList..\n    \"nameIDMaps\":[],    // array of Tags Names-IDs object. Order is the same of nameList.\n    \"IDnameMaps\":[],     // array of Tags IDs-Names Map object. Order is the same of nameList.\n    \"IDTypeMaps\":[]     // array of Tags IDs-Type Map object. Order is the same of nameList.    \n}\n\n// Check Payload\nlet m = msg.payload;\nif (m.seq == undefined) {\n    // update global maps\n    flow.set(\"S7ConnectionMap\", null);\n    // update function node status\n    node.status({fill:\"red\",shape:\"ring\",text:\"S7Map cannot be created\"});\n    \n    return null;\n}  \n\n// Iterate through connections\nfor (let i = 0; i < m.connections.length; i++)\n{\n    let connection = m.connections[i];\n    // push connection name and type in global object\n    S7ConnectionMap.nameList.push(connection.name);\n    S7ConnectionMap.typeList.push(connection.type);\n    // init maps\n    let nameIDMap = new Map();\n    let IDNameMap = new Map();\n    let IDTypeMap = new Map();\n    \n    // Iterate through dataPoints\n    let dataPoints = connection.dataPoints;\n    for (let j = 0; j < dataPoints.length; j++)\n    {\n        let dataPoint = dataPoints[j];\n        // Iterate through dataPointDefinitions\n        let dataPointDefinitions = dataPoint.dataPointDefinitions;\n        for (let k = 0; k < dataPointDefinitions.length; k++)\n        {\n            let dataPointDefinition = dataPointDefinitions[k];\n            // push in maps the datapoint property\n            nameIDMap.set(dataPointDefinition.name, dataPointDefinition.id);\n            IDNameMap.set(dataPointDefinition.id, dataPointDefinition.name);\n            IDTypeMap.set(dataPointDefinition.id, dataPointDefinition.dataType);        \n        }\n    }\n    // push mappings in global object\n    S7ConnectionMap.nameIDMaps.push(nameIDMap);\n    S7ConnectionMap.IDnameMaps.push(IDNameMap);\n    S7ConnectionMap.IDTypeMaps.push(IDTypeMap);\n}\n\n\n// update global maps\nflow.set(\"S7ConnectionMap\", S7ConnectionMap);\n\n// set S7Map as output payload\nmsg.payload = S7ConnectionMap;\n\n// update function node status\nnode.status({fill:\"green\",shape:\"ring\",text:\"S7ConnectionMap created for \" + S7ConnectionMap.nameList.join()});\n\nreturn msg;\n\n\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 620,
+        "y": 100,
+        "wires": [
+            [
+                "a85cffe8.f1d9a"
+            ]
+        ]
+    },
+    {
+        "id": "a85cffe8.f1d9a",
+        "type": "debug",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 910,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "5a560547.d7810c",
+        "type": "comment",
+        "z": "fce38304.fdfcd",
+        "name": "Create S7ConnectionMap Flow Variable to help mapping tags properties",
+        "info": "",
+        "x": 730,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "9bde17de.9db318",
+        "type": "join",
+        "z": "fce38304.fdfcd",
+        "name": "5 series batch",
+        "mode": "custom",
+        "build": "array",
+        "property": "payload",
+        "propertyType": "msg",
+        "key": "topic",
+        "joiner": ",",
+        "joinerType": "str",
+        "accumulate": false,
+        "timeout": "",
+        "count": "5",
+        "reduceRight": false,
+        "reduceExp": "",
+        "reduceInit": "",
+        "reduceInitType": "",
+        "reduceFixup": "",
+        "x": 500,
+        "y": 580,
+        "wires": [
+            [
+                "adf4804b.3ca2b",
+                "5f63dce0.6e9f64"
+            ]
+        ]
+    },
+    {
+        "id": "5f63dce0.6e9f64",
+        "type": "debug",
+        "z": "fce38304.fdfcd",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 670,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "163f80f6.8d5c0f",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "ie-databus",
+        "port": "1883",
+        "tls": "",
+        "clientid": "",
+        "usetls": false,
+        "compatmode": false,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": ""
+    },
+    {
+        "id": "4bedf3f5.91eb9c",
+        "type": "ui_group",
+        "name": "Production Counters",
+        "tab": "ad636f4a.7d358",
+        "order": 3,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "db6a5a19.a6a128",
+        "type": "ui_group",
+        "name": "Machine Status",
+        "tab": "ad636f4a.7d358",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "7bd3d7df.835d08",
+        "type": "ui_group",
+        "name": "Control and Monitor",
+        "tab": "ad636f4a.7d358",
+        "order": 2,
+        "disp": true,
+        "width": "13",
+        "collapse": false
+    },
+    {
+        "id": "fee03a9c.fcb198",
+        "type": "influxdb",
+        "hostname": "edge-influxdb",
+        "port": "8086",
+        "protocol": "http",
+        "database": "edge",
+        "name": "",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "1.x",
+        "url": "http://localhost:8086",
+        "rejectUnauthorized": true
+    },
+    {
+        "id": "ad636f4a.7d358",
+        "type": "ui_tab",
+        "name": "S7 - InfluxDB 1.8",
+        "icon": "extension",
+        "order": 2,
+        "disabled": false,
+        "hidden": false
+    }
+]
